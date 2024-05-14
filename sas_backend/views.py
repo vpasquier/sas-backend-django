@@ -1,8 +1,10 @@
-from rest_framework import viewsets
+from django.http import JsonResponse
+from rest_framework import status, viewsets
+from rest_framework.views import APIView
 
 from .models import Booking, Cart, Notification, Offer, Profile
 from .serializers import (
-    BookingSerialier,
+    BookingSerializer,
     CartSerializer,
     NotificationSerializer,
     OfferSerializer,
@@ -21,7 +23,7 @@ class ProfileView(viewsets.ModelViewSet):
 
 
 class BookingView(viewsets.ModelViewSet):
-    serializer_class = BookingSerialier
+    serializer_class = BookingSerializer
     queryset = Booking.objects.all()
 
 
@@ -33,3 +35,11 @@ class CartView(viewsets.ModelViewSet):
 class NotificationView(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
     queryset = Notification.objects.all()
+
+
+class CustomEndpoint(APIView):
+    def get(self, request):
+        example = request.query_params.get("example")
+        if not example:
+            example = "vlad"
+        return JsonResponse({"example": example}, status=status.HTTP_200_OK)

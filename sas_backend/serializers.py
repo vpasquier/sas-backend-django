@@ -15,7 +15,7 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class BookingSerialier(serializers.ModelSerializer):
+class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
         fields = "__all__"
@@ -31,3 +31,7 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = "__all__"
+
+
+class CustomEndpoint(serializers.Serializer):
+    example = serializers.CharField()

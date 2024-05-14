@@ -14,4 +14,5 @@ router.register(r"notifications", views.NotificationView, "notification")
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
+    path("yo/", views.CustomEndpoint.as_view(), name="mycustom"),
 ]

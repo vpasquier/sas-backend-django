@@ -31,8 +31,8 @@ class Booking(models.Model):
     comment = models.CharField(max_length=180, blank=True, null=True)
     price = models.FloatField(default=0, blank=True)
 
-    def __str__(self):
-        return self.session
+    def __str__(self) -> str:
+        return f"Booking of {self.customer} with {self.designer}"
 
 
 # Customer cart
