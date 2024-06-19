@@ -20,11 +20,14 @@ faker = "^25.2.0"
 django-factory-boy = "^1.0.0"
 factory-boy = "^3.3.0"
 pytest-django = "^4.8.0"
+django-silk = "^5.1.0"
+gunicorn = "^22.0.0"
 
 [tool.poetry.group.dev.dependencies]
 debugpy = "^1.8.1"
 pytest = "^8.1.1"
 
 [build-system]
-requires = ["poetry-core"]
+# Should be the same as `$POETRY_VERSION`:
+requires = ["poetry-core>=1.9"]
 build-backend = "poetry.core.masonry.api"
