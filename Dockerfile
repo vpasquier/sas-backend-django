@@ -27,7 +27,7 @@ ENV PATH="${PATH}:/root/.poetry/bin"
 WORKDIR /app
 COPY pyproject.toml .
 COPY poetry.lock .
-RUN poetry install --no-root --no-dev --no-interaction
+RUN poetry install --no-root --only main --no-interaction
 RUN poetry show --tree
 COPY . .
 RUN rm -rf .venv
