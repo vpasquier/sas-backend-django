@@ -90,8 +90,21 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-    }
+    },
+    "postgres": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "your_database_name",  # Replace with your database name
+        "USER": "your_username",        # Replace with your database username
+        "PASSWORD": "your_password",    # Replace with your database password
+        "HOST": "localhost",            # Set to your database host
+        "PORT": "5432",                 # Default PostgreSQL port
+    },
 }
+
+USE_POSTGRES=os.environ.get('USE_POSTGRES', 'True')
+if USE_POSTGRES:
+    DATABASES['default'] = DATABASES['postgres']
+    del DATABASES['postgres']
 
 
 # Password validation

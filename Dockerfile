@@ -23,6 +23,7 @@ RUN apt-get update \
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="${PATH}:/root/.poetry/bin"
+ENV USE_POSTGRES=True
 
 WORKDIR /app
 COPY pyproject.toml .

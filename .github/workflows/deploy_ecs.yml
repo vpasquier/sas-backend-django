@@ -1,0 +1,68 @@
+name: Deploy to ECR
+
+on: 
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  REGISTRY_ID: 503561419437
+  ECR_REGISTRY: 503561419437.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: sas_backend
+  AWS_REGION: us-east-1
+  ECR_ROLE_ARN: arn:aws:iam::503561419437:role/ecr-deploy-github-action
+
+jobs:
+  deploy-ecr:
+    if: ${{ github.ref_name == 'main' }}
+    concurrency: deploy-ecr-dev
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+      url: https://dev.werkdrag.com
+    env:
+      ENVIRONMENT: dev
+      ROLE_ARN: arn:aws:iam::952219337142:role/github-actions
+      ECS_CLUSTER: 'sandbox-backend'
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials CD account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ECR_ROLE_ARN }}
+          role-session-name: sas-github-ecr-backend
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build, tag and push image to Amazon ECR
+        working-directory: ./
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          cd ./infrastruture/ && docker build \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
+            --build-arg COMMIT_SHA=${{ github.sha }} -f dockerfile .
+          
+          # Push github.sha tag first so all layers are in repo
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          
+          # delete latest image if exists before pushing latest tag
+          aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids imageTag=latest || true
+          
+          # Push latest tag
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+
+      - name: Configure AWS credentials dev account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          role-session-name: sas-github-backend-deployment
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update ECS task definition
+        run: |
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service sandbox-backend --force-new-deployment
