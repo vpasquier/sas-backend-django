@@ -22,6 +22,7 @@ factory-boy = "^3.3.0"
 pytest-django = "^4.8.0"
 django-silk = "^5.1.0"
 gunicorn = "^22.0.0"
+psycopg2 = "^2.9.10"
 
 [tool.poetry.group.dev.dependencies]
 debugpy = "^1.8.1"
