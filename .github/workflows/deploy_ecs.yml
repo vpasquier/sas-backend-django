@@ -14,7 +14,7 @@ env:
   ECR_REGISTRY: 503561419437.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: sas-dev-ecr-repository
   AWS_REGION: us-east-1
-  ECR_ROLE_ARN: arn:aws:iam::503561419437:role/ecr-deploy-github-action
+  ROLE_ARN: arn:aws:iam::503561419437:role/ecr-deploy-github-action
 
 jobs:
   deploy-ecr-dev:
@@ -25,7 +25,6 @@ jobs:
       name: dev
     env:
       ENVIRONMENT: dev
-      ROLE_ARN: arn:aws:iam::952219337142:role/github-actions
       ECS_CLUSTER: "sas-dev"
     steps:
       - name: Git clone the repository
