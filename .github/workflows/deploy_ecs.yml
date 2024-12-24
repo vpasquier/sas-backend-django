@@ -1,8 +1,9 @@
 name: Deploy to ECR
 
-on: 
+on:
   push:
     branches: [main]
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions:
   id-token: write
@@ -11,50 +12,24 @@ permissions:
 env:
   REGISTRY_ID: 503561419437
   ECR_REGISTRY: 503561419437.dkr.ecr.us-east-1.amazonaws.com
-  ECR_REPOSITORY: sas_backend
+  ECR_REPOSITORY: sas-dev-ecr-repository
   AWS_REGION: us-east-1
   ECR_ROLE_ARN: arn:aws:iam::503561419437:role/ecr-deploy-github-action
 
 jobs:
-  deploy-ecr:
+  deploy-ecr-dev:
     if: ${{ github.ref_name == 'main' }}
     concurrency: deploy-ecr-dev
     runs-on: ubuntu-latest
     environment:
       name: dev
-      url: https://dev.werkdrag.com
     env:
       ENVIRONMENT: dev
       ROLE_ARN: arn:aws:iam::952219337142:role/github-actions
-      ECS_CLUSTER: 'sandbox-backend'
+      ECS_CLUSTER: "sas-dev"
     steps:
       - name: Git clone the repository
         uses: actions/checkout@v3
-
-      - name: Configure AWS credentials CD account
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.ECR_ROLE_ARN }}
-          role-session-name: sas-github-ecr-backend
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Build, tag and push image to Amazon ECR
-        working-directory: ./
-        run: |
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
-          cd ./infrastruture/ && docker build \
-            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
-            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
-            --build-arg COMMIT_SHA=${{ github.sha }} -f dockerfile .
-          
-          # Push github.sha tag first so all layers are in repo
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-          
-          # delete latest image if exists before pushing latest tag
-          aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids imageTag=latest || true
-          
-          # Push latest tag
-          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
 
       - name: Configure AWS credentials dev account
         uses: aws-actions/configure-aws-credentials@v4
@@ -63,6 +38,58 @@ jobs:
           role-session-name: sas-github-backend-deployment
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Build, tag and push image to Amazon ECR
+        working-directory: ./
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest \
+            --build-arg COMMIT_SHA=${{ github.sha }} -f dockerfile .
+
+          # Push github.sha tag first so all layers are in repo
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+          # delete latest image if exists before pushing latest tag
+          aws ecr batch-delete-image --repository-name ${{ env.ECR_REPOSITORY }} --image-ids imageTag=latest || true
+
+          # Push latest tag
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:latest
+
       - name: Update ECS task definition
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service sandbox-backend --force-new-deployment
+          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service backend-task --force-new-deployment
+
+  validate-release:
+    if: ${{ github.ref_name == 'main' }}
+    runs-on: ubuntu-latest
+    needs: deploy-ecr-dev
+    environment:
+      name: prod
+    env:
+      ENVIRONMENT: prod
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v3
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ECR_ROLE_ARN }}
+          role-session-name: github-actions-release
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create a Git tag
+        run: |
+          git tag ${{ github.event.inputs.tag }}
+          git push origin ${{ github.event.inputs.tag }}
+
+      - name: Build, tag and push image to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
+          docker build \
+            -t ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.tag }} \
+            --build-arg COMMIT_SHA=${{ github.sha }} -f dockerfile .
+
+          # Push the tagged image
+          docker push ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.event.inputs.tag }}
