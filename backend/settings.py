@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-_q=r+4^gif*qnohv+2@w@2f@n=%y%(od&1#))o4i^_zsqj#z9z"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('CUSTOM_DEBUG_FLAG', 'True') == 'False'
+DEBUG = os.environ.get('CUSTOM_DEBUG_FLAG', "True") == "True"
 
 ALLOWED_HOSTS = []  # type: ignore
 
@@ -93,15 +93,15 @@ DATABASES = {
     },
     "postgres": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "your_database_name",  # Replace with your database name
-        "USER": "your_username",        # Replace with your database username
-        "PASSWORD": "your_password",    # Replace with your database password
-        "HOST": "localhost",            # Set to your database host
-        "PORT": "5432",                 # Default PostgreSQL port
+        "NAME": "your_database_name",
+        "USER": "your_username",
+        "PASSWORD": "your_password",
+        "HOST": "localhost",
+        "PORT": "5432",
     },
 }
 
-USE_POSTGRES=os.environ.get('USE_POSTGRES', 'True')
+USE_POSTGRES=os.environ.get('USE_POSTGRES', "True") == "True"
 if USE_POSTGRES:
     DATABASES['default'] = DATABASES['postgres']
     del DATABASES['postgres']

@@ -25,7 +25,6 @@ RUN apt-get update \
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH="${PATH}:/root/.poetry/bin"
-ENV USE_POSTGRES=True
 
 WORKDIR /app
 COPY pyproject.toml .
@@ -35,8 +34,13 @@ RUN poetry show --tree
 COPY . .
 RUN rm -rf .venv
 
+# Database
+ENV USE_POSTGRES=False
+ENV CUSTOM_DEBUG_FLAG=True
+RUN python manage.py migrate --no-input
+
 # Collect static files for admin pages
-RUN python manage.py collectstatic --no-input
+RUN python manage.py collectstatic --noinput --clear
 
 EXPOSE 8000
 CMD ["poetry", "run", "gunicorn", "--config", "gunicorn_config.py", "sas_backend.wsgi:application"]
