@@ -43,4 +43,5 @@ RUN python manage.py migrate --no-input
 RUN python manage.py collectstatic --noinput --clear
 
 EXPOSE 8000
-CMD ["poetry", "run", "gunicorn", "--config", "gunicorn_config.py", "sas_backend.wsgi:application"]
+CMD ["poetry", "run", "gunicorn", "--config", "gunicorn_config.py", "--bind", "0.0.0.0:8000", "sas_backend.wsgi:application"]
+
